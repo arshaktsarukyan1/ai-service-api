@@ -1,0 +1,24 @@
+active_provider: openai
+
+providers:
+  openai:
+    api_key_env: OPENAI_API_KEY
+    default_model: gpt-4o-mini
+    task_models:
+      information_preparation: gpt-4o-mini
+      information_structuring: gpt-4o-mini
+      voice_assistant: gpt-4o
+    temperature: 0.7
+    max_tokens: 2048
+    timeout_seconds: 30
+    retry:
+      attempts: 3
+      delay_seconds: 1.0
+
+database:
+  arangodb:
+    host: localhost
+    port: 8529
+    username: root
+    password_env: ARANGO_PASSWORD
+    database: ai_service

@@ -1,4 +1,6 @@
+import os
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import BaseModel
 
@@ -6,6 +8,9 @@ from pydantic import BaseModel
 class Settings(BaseModel):
     app_name: str = "AI Service Backend"
     app_version: str = "0.1.0"
+    ai_config_path: Path = Path(
+        os.environ.get("AI_CONFIG_PATH", "config/ai_providers.yaml")
+    )
 
 
 @lru_cache(maxsize=1)
