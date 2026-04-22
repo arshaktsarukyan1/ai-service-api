@@ -35,6 +35,11 @@ class ExecuteResponse(BaseModel):
     )
 
 
+class ActiveProviderResponse(BaseModel):
+    active_provider: str = Field(description="Configured active AI provider name.")
+    default_model: str = Field(description="Default model for the active provider.")
+
+
 class ErrorResponse(BaseModel):
     error: str = Field(description="Machine-readable error type (snake_case).")
     detail: str = Field(description="Human-readable error description.")

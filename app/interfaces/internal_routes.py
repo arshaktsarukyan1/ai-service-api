@@ -5,11 +5,30 @@ from fastapi import APIRouter
 from app.application.ai_service import execute_task
 from app.infrastructure.openai_provider import get_active_provider
 from app.infrastructure.yaml_config import AiConfigDep
-from app.interfaces.schemas import ExecuteRequest, ExecuteResponse, UsageResponse
+from app.interfaces.schemas import (
+    ActiveProviderResponse,
+    ExecuteRequest,
+    ExecuteResponse,
+    UsageResponse,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/internal", tags=["internal"])
+
+
+@router.get(
+    "/ai/provider",
+    response_model=ActiveProviderResponse,
+    summary="Get active AI provider",
+)
+async def get_active_ai_provider(config: AiConfigDep) -> ActiveProviderResponse:
+    active_provider = config.active_provider
+    provider_config = config.providers[active_provider]
+    return ActiveProviderResponse(
+        active_provider=active_provider,
+        default_model=provider_config.default_model,
+    )
 
 
 @router.post(

@@ -34,6 +34,14 @@ def test_execute_returns_200(client: TestClient) -> None:
     assert body["usage"]["total_tokens"] == 15
 
 
+def test_active_provider_returns_200(client: TestClient) -> None:
+    resp = client.get("/internal/ai/provider")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["active_provider"] == "openai"
+    assert body["default_model"] == "gpt-4o-mini"
+
+
 def test_execute_accepts_metadata(client: TestClient) -> None:
     resp = client.post(
         "/internal/ai/execute",
