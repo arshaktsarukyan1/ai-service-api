@@ -44,6 +44,10 @@ class OpenAIProvider:
     def _resolve_model(self, task: AITask) -> str:
         return self._config.task_models.get(task, self._config.default_model)
 
+    async def ping(self) -> None:
+        """Lightweight connectivity check — lists one model without generating tokens."""
+        await self._client.models.list()
+
     async def execute(self, request: AIRequest) -> AIResponse:
         model = self._resolve_model(request.task)
         start = time.monotonic()

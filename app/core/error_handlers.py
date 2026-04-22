@@ -55,7 +55,7 @@ def register_error_handlers(app: FastAPI) -> None:
         rid = _request_id(request)
         logger.warning("Unsupported task request_id=%s detail=%s", rid, exc)
         return _json_error(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "unsupported_task",
             str(exc),
             rid,
@@ -135,7 +135,7 @@ def register_error_handlers(app: FastAPI) -> None:
         location = " → ".join(str(loc) for loc in first.get("loc", []))
         detail = f"{first.get('msg', 'Validation error')} (field: {location})"
         return _json_error(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "validation_error",
             detail,
             rid,
