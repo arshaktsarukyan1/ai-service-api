@@ -11,6 +11,7 @@ class Settings(BaseModel):
     ai_config_path: Path = Path(
         os.environ.get("AI_CONFIG_PATH", "config/ai_providers.yaml")
     )
+    log_level: str = os.environ.get("LOG_LEVEL", "INFO")
 
 
 @lru_cache(maxsize=1)

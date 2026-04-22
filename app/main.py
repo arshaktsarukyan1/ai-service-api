@@ -6,9 +6,13 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from pydantic import ValidationError
 
-from app.api.routes import router as api_router
+from app.api.routes import router as health_router
 from app.core.config import get_settings
+from app.core.error_handlers import register_error_handlers
+from app.core.logging_config import configure_logging
+from app.core.middleware import RequestIDMiddleware
 from app.infrastructure.yaml_config import load_ai_config
+from app.interfaces.internal_routes import router as internal_router
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +23,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         cfg = load_ai_config(settings.ai_config_path)
         logger.info(
-            "AI config loaded: active_provider=%s, path=%s",
+            "AI config loaded: active_provider=%s path=%s",
             cfg.active_provider,
             settings.ai_config_path,
         )
@@ -37,12 +41,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    configure_logging(settings.log_level)
+
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
         lifespan=lifespan,
     )
-    app.include_router(api_router)
+
+    app.add_middleware(RequestIDMiddleware)
+    register_error_handlers(app)
+
+    app.include_router(health_router)
+    app.include_router(internal_router)
+
     return app
 
 

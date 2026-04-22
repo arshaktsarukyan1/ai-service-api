@@ -1,6 +1,5 @@
 import os
 import time
-from functools import lru_cache
 
 from openai import (
     APIConnectionError,
@@ -92,15 +91,20 @@ class OpenAIProvider:
         )
 
 
-@lru_cache(maxsize=4)
-def _build_provider(provider_name: str, provider_config: ProviderConfig) -> OpenAIProvider:
-    """Build and cache a provider instance keyed on provider name + frozen config."""
-    if provider_name == "openai":
-        return OpenAIProvider(config=provider_config)
-    raise AIProviderError(f"Unknown provider: '{provider_name}'")
+_provider_cache: dict[str, OpenAIProvider] = {}
 
 
 def get_active_provider(config: AIProvidersConfig) -> OpenAIProvider:
-    """Return a cached provider instance for the active provider in config."""
-    provider_config = config.providers[config.active_provider]
-    return _build_provider(config.active_provider, provider_config)
+    """Return a cached provider instance for the active provider in config.
+
+    Cached per provider name so the AsyncOpenAI connection pool is reused
+    across requests. Config is read only once on first construction.
+    """
+    name = config.active_provider
+    if name not in _provider_cache:
+        provider_config = config.providers[name]
+        if name == "openai":
+            _provider_cache[name] = OpenAIProvider(config=provider_config)
+        else:
+            raise AIProviderError(f"Unknown provider: '{name}'")
+    return _provider_cache[name]
