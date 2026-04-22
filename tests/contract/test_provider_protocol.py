@@ -65,7 +65,6 @@ def test_openai_provider_ping_is_async() -> None:
 
 def test_openai_provider_raises_auth_error_without_key(monkeypatch) -> None:
     """Confirm AIAuthError is raised when the env var is not set."""
-    import os
 
     from app.domain.exceptions import AIAuthError
     from app.infrastructure.config_schema import ProviderConfig

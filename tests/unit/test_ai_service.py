@@ -6,7 +6,7 @@ from app.application.ai_service import execute_task
 from app.domain.exceptions import AIProviderError, AIUnsupportedTaskError
 from app.domain.models import AIRequest, AIResponse, AIUsage
 from app.domain.tasks import AITask
-from app.infrastructure.config_schema import ProviderConfig, RetryConfig
+from app.infrastructure.config_schema import ProviderConfig
 
 
 @pytest.fixture

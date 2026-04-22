@@ -12,7 +12,6 @@ from app.domain.exceptions import (
     AIRateLimitError,
     AITimeoutError,
 )
-from app.domain.models import AIResponse
 from app.domain.tasks import AITask
 
 # ---------------------------------------------------------------------------

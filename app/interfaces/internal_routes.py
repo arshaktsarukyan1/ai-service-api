@@ -18,7 +18,7 @@ router = APIRouter(prefix="/internal", tags=["internal"])
     summary="Execute an AI task",
     description=(
         "Submit a task and input text to the active AI provider. "
-        "Returns a normalized response including content, model, provider, usage, and latency."
+        "Returns normalized content, provider/model details, usage, and latency."
     ),
 )
 async def execute_ai_task(body: ExecuteRequest, config: AiConfigDep) -> ExecuteResponse:

@@ -45,7 +45,7 @@ class AIProvidersConfig(BaseModel):
     database: DatabaseConfig | None = None
 
     @model_validator(mode="after")
-    def active_provider_must_exist(self) -> "AIProvidersConfig":
+    def active_provider_must_exist(self) -> AIProvidersConfig:
         if self.active_provider not in self.providers:
             raise ValueError(
                 f"active_provider '{self.active_provider}' not found in providers"

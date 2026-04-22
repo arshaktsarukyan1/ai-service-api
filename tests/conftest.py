@@ -10,7 +10,6 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key-for-tests")
 os.environ.setdefault("ARANGO_PASSWORD", "test-password")
 
 from app.domain.models import AIRequest, AIResponse, AIUsage  # noqa: E402
-from app.domain.tasks import AITask  # noqa: E402
 
 
 class MockProvider:

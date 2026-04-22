@@ -25,8 +25,9 @@ async def execute_task(
     metadata: dict[str, Any] | None = None,
 ) -> AIResponse:
     if task not in _SUPPORTED_TASKS:
+        supported_tasks = sorted(_SUPPORTED_TASKS)
         raise AIUnsupportedTaskError(
-            f"Task '{task}' is not supported. Supported tasks: {sorted(_SUPPORTED_TASKS)}"
+            f"Task '{task}' is not supported. Supported tasks: {supported_tasks}"
         )
 
     model = _resolve_model(task, provider_config)
