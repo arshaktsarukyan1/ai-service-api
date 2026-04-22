@@ -71,7 +71,9 @@ class OpenAIProvider:
         except BadRequestError as exc:
             raise AIProviderError(f"OpenAI bad request: {exc}") from exc
         except APIError as exc:
-            raise AIProviderError(f"OpenAI API error ({exc.status_code}): {exc}") from exc
+            raise AIProviderError(
+                f"OpenAI API error ({exc.status_code}): {exc}"
+            ) from exc
 
         latency_ms = int((time.monotonic() - start) * 1000)
         choice = completion.choices[0]

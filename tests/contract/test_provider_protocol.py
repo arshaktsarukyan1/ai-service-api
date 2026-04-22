@@ -9,10 +9,10 @@ from app.domain.models import AIRequest, AIResponse, AIUsage
 from app.domain.provider import AIProvider
 from app.domain.tasks import AITask
 
-
 # ---------------------------------------------------------------------------
 # MockProvider (from conftest) satisfies the protocol
 # ---------------------------------------------------------------------------
+
 
 def test_mock_provider_satisfies_protocol(mock_provider) -> None:
     assert isinstance(mock_provider, AIProvider)
@@ -41,6 +41,7 @@ async def test_mock_provider_returns_ai_response(mock_provider) -> None:
 # ---------------------------------------------------------------------------
 # OpenAIProvider class structure (without instantiation)
 # ---------------------------------------------------------------------------
+
 
 def test_openai_provider_class_has_name_attribute() -> None:
     from app.infrastructure.openai_provider import OpenAIProvider
@@ -79,6 +80,7 @@ def test_openai_provider_raises_auth_error_without_key(monkeypatch) -> None:
 # ---------------------------------------------------------------------------
 # AIResponse shape contract
 # ---------------------------------------------------------------------------
+
 
 def test_ai_response_required_fields() -> None:
     resp = AIResponse(

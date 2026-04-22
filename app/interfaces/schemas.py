@@ -30,10 +30,16 @@ class UsageResponse(BaseModel):
 class ExecuteResponse(BaseModel):
     task: AITask
     content: str = Field(description="The AI-generated text output.")
-    provider: str = Field(description="Name of the AI provider that handled the request.")
+    provider: str = Field(
+        description="Name of the AI provider that handled the request."
+    )
     model: str = Field(description="Exact model identifier returned by the provider.")
-    usage: UsageResponse | None = Field(default=None, description="Token usage statistics.")
-    latency_ms: int = Field(ge=0, description="End-to-end provider call latency in milliseconds.")
+    usage: UsageResponse | None = Field(
+        default=None, description="Token usage statistics."
+    )
+    latency_ms: int = Field(
+        ge=0, description="End-to-end provider call latency in milliseconds."
+    )
 
 
 class ErrorResponse(BaseModel):

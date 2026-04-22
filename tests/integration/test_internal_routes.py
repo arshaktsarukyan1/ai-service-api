@@ -15,10 +15,10 @@ from app.domain.exceptions import (
 from app.domain.models import AIResponse
 from app.domain.tasks import AITask
 
-
 # ---------------------------------------------------------------------------
 # Happy path
 # ---------------------------------------------------------------------------
+
 
 def test_execute_returns_200(client: TestClient) -> None:
     resp = client.post(
@@ -60,6 +60,7 @@ def test_execute_accepts_all_task_types(client: TestClient) -> None:
 # Request ID header
 # ---------------------------------------------------------------------------
 
+
 def test_response_includes_x_request_id(client: TestClient) -> None:
     resp = client.post(
         "/internal/ai/execute",
@@ -80,6 +81,7 @@ def test_caller_request_id_is_echoed(client: TestClient) -> None:
 # ---------------------------------------------------------------------------
 # Validation errors
 # ---------------------------------------------------------------------------
+
 
 def test_missing_input_text_returns_422(client: TestClient) -> None:
     resp = client.post(
@@ -119,6 +121,7 @@ def test_missing_task_returns_422(client: TestClient) -> None:
 # ---------------------------------------------------------------------------
 # Error handler mapping (monkeypatched execute_task)
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def patched_client(monkeypatch, mock_provider):
@@ -216,6 +219,7 @@ def test_provider_error_returns_502(patched_client, mock_provider) -> None:
 # ---------------------------------------------------------------------------
 # Health + readiness endpoints (sanity check in integration context)
 # ---------------------------------------------------------------------------
+
 
 def test_health_still_returns_200(client: TestClient) -> None:
     resp = client.get("/health")

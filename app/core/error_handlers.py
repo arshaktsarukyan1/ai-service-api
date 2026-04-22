@@ -128,9 +128,7 @@ def register_error_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         rid = _request_id(request)
         errors = exc.errors()
-        logger.warning(
-            "Request validation failed request_id=%s errors=%s", rid, errors
-        )
+        logger.warning("Request validation failed request_id=%s errors=%s", rid, errors)
         first = errors[0] if errors else {}
         location = " → ".join(str(loc) for loc in first.get("loc", []))
         detail = f"{first.get('msg', 'Validation error')} (field: {location})"

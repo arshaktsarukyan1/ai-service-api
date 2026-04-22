@@ -29,7 +29,9 @@ def get_health() -> dict[str, str]:
 )
 async def get_readiness(
     config: AiConfigDep,
-    ping: bool = Query(False, description="Trigger a live provider connectivity check."),
+    ping: bool = Query(
+        False, description="Trigger a live provider connectivity check."
+    ),
 ) -> JSONResponse:
     active = config.active_provider
     provider_config = config.providers.get(active)
@@ -42,7 +44,11 @@ async def get_readiness(
             },
         )
 
-    payload: dict = {"status": "ready", "provider": active, "model": provider_config.default_model}
+    payload: dict = {
+        "status": "ready",
+        "provider": active,
+        "model": provider_config.default_model,
+    }
 
     if not ping:
         return JSONResponse(content=payload)
@@ -55,7 +61,10 @@ async def get_readiness(
         logger.error("Readiness ping auth failure: %s", exc)
         return JSONResponse(
             status_code=503,
-            content={"status": "not_ready", "reason": "Provider authentication failed."},
+            content={
+                "status": "not_ready",
+                "reason": "Provider authentication failed.",
+            },
         )
     except (AITimeoutError, AIProviderError) as exc:
         logger.warning("Readiness ping failed: %s", exc)

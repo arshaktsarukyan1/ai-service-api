@@ -18,6 +18,7 @@ def _valid_provider() -> dict:
 
 # --- RetryConfig ---
 
+
 def test_retry_config_defaults() -> None:
     cfg = RetryConfig()
     assert cfg.attempts == 3
@@ -35,6 +36,7 @@ def test_retry_config_attempts_above_maximum_raises() -> None:
 
 
 # --- ProviderConfig ---
+
 
 def test_provider_config_valid() -> None:
     cfg = ProviderConfig(**_valid_provider())
@@ -61,6 +63,7 @@ def test_provider_config_defaults() -> None:
 
 # --- ArangoDBConfig ---
 
+
 def test_arango_config_defaults() -> None:
     cfg = ArangoDBConfig()
     assert cfg.host == "localhost"
@@ -74,6 +77,7 @@ def test_arango_config_invalid_port_raises() -> None:
 
 
 # --- AIProvidersConfig ---
+
 
 def test_providers_config_valid() -> None:
     cfg = AIProvidersConfig(

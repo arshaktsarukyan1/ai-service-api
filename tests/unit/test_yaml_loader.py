@@ -1,7 +1,8 @@
 """Unit tests for the YAML configuration loader."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 from pydantic import ValidationError
 
 from app.infrastructure.yaml_config import load_ai_config
@@ -86,7 +87,9 @@ providers:
         load_ai_config(cfg_file)
 
 
-def test_missing_required_provider_field_raises_validation_error(tmp_path: Path) -> None:
+def test_missing_required_provider_field_raises_validation_error(
+    tmp_path: Path,
+) -> None:
     # api_key_env and default_model are required
     bad_yaml = """\
 active_provider: openai
