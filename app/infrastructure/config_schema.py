@@ -7,7 +7,6 @@ class RetryConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     attempts: int = Field(ge=1, le=10, default=3)
-    delay_seconds: float = Field(ge=0.1, le=30.0, default=1.0)
 
 
 class ProviderConfig(BaseModel):

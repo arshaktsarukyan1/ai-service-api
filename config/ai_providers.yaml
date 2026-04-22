@@ -13,7 +13,6 @@ providers:
     timeout_seconds: 30
     retry:
       attempts: 3
-      delay_seconds: 1.0
 
 database:
   arangodb:

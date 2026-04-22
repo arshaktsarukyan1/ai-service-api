@@ -22,7 +22,6 @@ def _valid_provider() -> dict:
 def test_retry_config_defaults() -> None:
     cfg = RetryConfig()
     assert cfg.attempts == 3
-    assert cfg.delay_seconds == 1.0
 
 
 def test_retry_config_attempts_below_minimum_raises() -> None:

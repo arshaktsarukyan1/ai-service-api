@@ -80,7 +80,6 @@ providers:
     timeout_seconds: 30     # 1–300
     retry:
       attempts: 3           # 1–10 (first attempt + N-1 retries)
-      delay_seconds: 1.0    # 0.1–30.0 (SDK handles backoff automatically)
 
 # Optional database block — required for Tasks 2 and 3.
 database:
@@ -314,7 +313,7 @@ tests/
 - **Config file not found**: process exits at startup with a `CRITICAL` log
   showing the expected path. Set `AI_CONFIG_PATH` to the correct location.
 - **Rate limit (429 from OpenAI)**: SDK retries automatically up to
-  `retry.attempts - 1` times with backoff. If retries are exhausted, the
+  `retry.attempts - 1` times. If retries are exhausted, the
   service returns `429` to the caller.
 - **Timeouts**: if OpenAI does not respond within `timeout_seconds`, the SDK
   raises a timeout which becomes a `504` response. Tune `timeout_seconds` for

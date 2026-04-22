@@ -1,10 +1,3 @@
-"""Transport-layer schemas for the internal AI service API.
-
-These are intentionally separate from domain models so that HTTP field names,
-documentation, and serialization choices can evolve independently of the
-domain contracts.
-"""
-
 from typing import Any
 
 from pydantic import BaseModel, Field

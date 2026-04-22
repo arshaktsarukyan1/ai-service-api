@@ -7,13 +7,6 @@ from starlette.types import ASGIApp
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
-    """Attach a UUID request ID to every request and response.
-
-    - Sets ``request.state.request_id`` so handlers and routes can log it.
-    - Echoes the value in the ``X-Request-ID`` response header for tracing.
-    - Respects an inbound ``X-Request-ID`` header if provided by a caller.
-    """
-
     def __init__(self, app: ASGIApp) -> None:
         super().__init__(app)
 

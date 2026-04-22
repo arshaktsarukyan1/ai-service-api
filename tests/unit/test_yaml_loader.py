@@ -29,7 +29,6 @@ providers:
     timeout_seconds: 20
     retry:
       attempts: 2
-      delay_seconds: 0.5
 database:
   arangodb:
     host: localhost
@@ -109,7 +108,6 @@ def test_retry_config_defaults(tmp_path: Path) -> None:
     cfg = load_ai_config(cfg_file)
     retry = cfg.providers["openai"].retry
     assert retry.attempts == 3
-    assert retry.delay_seconds == 1.0
 
 
 def test_database_section_is_optional(tmp_path: Path) -> None:

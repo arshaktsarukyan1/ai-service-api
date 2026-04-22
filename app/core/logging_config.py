@@ -3,8 +3,6 @@ import sys
 
 
 class _StructuredFormatter(logging.Formatter):
-    """Single-line structured log formatter: timestamp level logger message [k=v ...]."""
-
     def format(self, record: logging.LogRecord) -> str:
         base = super().format(record)
         extras: list[str] = []
@@ -16,7 +14,6 @@ class _StructuredFormatter(logging.Formatter):
 
 
 def configure_logging(level: str = "INFO") -> None:
-    """Configure root logger with a structured single-line format."""
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(
         _StructuredFormatter(
@@ -26,7 +23,6 @@ def configure_logging(level: str = "INFO") -> None:
     )
     logging.root.setLevel(level.upper())
     logging.root.handlers = [handler]
-    # Suppress noisy third-party loggers
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("openai").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)

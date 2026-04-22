@@ -1,9 +1,3 @@
-"""Internal AI execution API.
-
-Intended for server-to-server use only — not exposed to end users directly.
-All domain exceptions bubble up to the global handlers registered in main.py.
-"""
-
 import logging
 
 from fastapi import APIRouter

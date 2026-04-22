@@ -1,11 +1,3 @@
-"""Global FastAPI exception handlers.
-
-Each handler:
-1. Extracts request_id from request.state (set by RequestIDMiddleware).
-2. Logs at the appropriate level with structured context.
-3. Returns a consistent ErrorResponse JSON body with the correct HTTP status.
-"""
-
 import logging
 
 from fastapi import FastAPI, Request, status
@@ -46,8 +38,6 @@ def _json_error(
 
 
 def register_error_handlers(app: FastAPI) -> None:
-    """Attach all exception handlers to the FastAPI application."""
-
     @app.exception_handler(AIUnsupportedTaskError)
     async def handle_unsupported_task(
         request: Request, exc: AIUnsupportedTaskError

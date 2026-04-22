@@ -33,8 +33,6 @@ class OpenAIProvider:
                 f"Environment variable '{config.api_key_env}' is not set or empty. "
                 "Set it before starting the service."
             )
-        # max_retries delegates retry+backoff to the SDK; subtract 1 because
-        # the first attempt is not counted as a retry.
         self._client = AsyncOpenAI(
             api_key=api_key,
             timeout=float(config.timeout_seconds),
@@ -45,8 +43,22 @@ class OpenAIProvider:
         return self._config.task_models.get(task, self._config.default_model)
 
     async def ping(self) -> None:
-        """Lightweight connectivity check — lists one model without generating tokens."""
-        await self._client.models.list()
+        try:
+            await self._client.models.list()
+        except AuthenticationError as exc:
+            raise AIAuthError(f"OpenAI authentication failed: {exc}") from exc
+        except RateLimitError as exc:
+            raise AIRateLimitError(f"OpenAI rate limit exceeded: {exc}") from exc
+        except APITimeoutError as exc:
+            raise AITimeoutError(
+                f"OpenAI call timed out after {self._config.timeout_seconds}s: {exc}"
+            ) from exc
+        except APIConnectionError as exc:
+            raise AIProviderError(f"OpenAI connection error: {exc}") from exc
+        except APIError as exc:
+            raise AIProviderError(
+                f"OpenAI API error ({exc.status_code}): {exc}"
+            ) from exc
 
     async def execute(self, request: AIRequest) -> AIResponse:
         model = self._resolve_model(request.task)
@@ -101,11 +113,6 @@ _provider_cache: dict[str, OpenAIProvider] = {}
 
 
 def get_active_provider(config: AIProvidersConfig) -> OpenAIProvider:
-    """Return a cached provider instance for the active provider in config.
-
-    Cached per provider name so the AsyncOpenAI connection pool is reused
-    across requests. Config is read only once on first construction.
-    """
     name = config.active_provider
     if name not in _provider_cache:
         provider_config = config.providers[name]

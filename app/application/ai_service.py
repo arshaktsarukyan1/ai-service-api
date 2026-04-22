@@ -1,5 +1,3 @@
-"""Application layer: provider-agnostic AI task orchestration."""
-
 import logging
 from typing import Any
 
@@ -26,19 +24,6 @@ async def execute_task(
     provider_config: ProviderConfig,
     metadata: dict[str, Any] | None = None,
 ) -> AIResponse:
-    """Execute an AI task through a provider and return a normalized response.
-
-    Args:
-        task: The AI task type to perform.
-        input_text: The text input for the AI model.
-        provider: An AIProvider instance (must implement the AIProvider protocol).
-        provider_config: The active provider's configuration (models, limits).
-        metadata: Optional free-form metadata passed through to AIRequest.
-
-    Raises:
-        AIUnsupportedTaskError: If the task is not in the supported task set.
-        AIProviderError and subclasses: On provider-level failures.
-    """
     if task not in _SUPPORTED_TASKS:
         raise AIUnsupportedTaskError(
             f"Task '{task}' is not supported. Supported tasks: {sorted(_SUPPORTED_TASKS)}"
