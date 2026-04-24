@@ -20,3 +20,11 @@ class AITimeoutError(AIProviderError):
 
 class AIUnsupportedTaskError(AIServiceError):
     """Requested AITask is not supported by the active provider."""
+
+
+class LocationNotFoundError(AIServiceError):
+    """No construction-site / project record exists for the given identifier."""
+
+
+class FaqResponseParseError(AIServiceError):
+    """The AI model output could not be parsed into structured FAQ items."""
