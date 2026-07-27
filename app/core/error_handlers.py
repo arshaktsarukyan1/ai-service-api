@@ -11,6 +11,8 @@ from app.domain.exceptions import (
     AIServiceError,
     AITimeoutError,
     AIUnsupportedTaskError,
+    FaqResponseParseError,
+    LocationNotFoundError,
 )
 from app.interfaces.schemas import ErrorResponse
 
@@ -38,6 +40,35 @@ def _json_error(
 
 
 def register_error_handlers(app: FastAPI) -> None:
+    @app.exception_handler(LocationNotFoundError)
+    async def handle_location_not_found(
+        request: Request, exc: LocationNotFoundError
+    ) -> JSONResponse:
+        rid = _request_id(request)
+        logger.warning("Location not found request_id=%s detail=%s", rid, exc)
+        return _json_error(
+            status.HTTP_404_NOT_FOUND,
+            "location_not_found",
+            str(exc),
+            rid,
+        )
+
+    @app.exception_handler(FaqResponseParseError)
+    async def handle_faq_parse_error(
+        request: Request, exc: FaqResponseParseError
+    ) -> JSONResponse:
+        rid = _request_id(request)
+        logger.error("FAQ parse error request_id=%s detail=%s", rid, exc)
+        return _json_error(
+            status.HTTP_502_BAD_GATEWAY,
+            "faq_parse_error",
+            (
+                "The AI response could not be converted into structured FAQs. "
+                "Please retry."
+            ),
+            rid,
+        )
+
     @app.exception_handler(AIUnsupportedTaskError)
     async def handle_unsupported_task(
         request: Request, exc: AIUnsupportedTaskError

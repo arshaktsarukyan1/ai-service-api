@@ -1,0 +1,41 @@
+[
+  {
+    "id": "de-berlin-hbf-upgrade",
+    "name": "Berlin Central Station — Platform and Accessibility Upgrade",
+    "start_date": "2024-09-01",
+    "expected_end_date": "2027-12-15",
+    "description": "Modernisation of platforms 1–6, new lifts, tactile guidance, and fire compartment upgrades. Night works scheduled to limit passenger disruption.",
+    "costs": "EUR 38.5 million (public tender, co-funded by federal transport programme)",
+    "initiator": "Deutsche Bahn Infrastruktur AG (with Berlin Senate for Urban Development)",
+    "address": "Invalidenstraße 1, 10557 Berlin, Germany",
+    "area": "Mitte, immediate station precinct",
+    "latitude": 52.5250,
+    "longitude": 13.3692
+  },
+  {
+    "id": "at-vienna-bypass-west",
+    "name": "A23 Südosttangente — West Section Viaduct Renewal",
+    "start_date": "2023-11-20",
+    "expected_end_date": "2026-08-30",
+    "description": "Structural renewal of two viaduct sections, including bearing replacement, deck waterproofing, and noise barriers. Local lane reductions during off-peak windows.",
+    "costs": "EUR 19.1 million (ASFINAG, federal highway fund)",
+    "initiator": "ASFINAG (Autobahn- und Schnellstraßen-Finanzierungs-AG)",
+    "address": "A23 between Knoten Inzersdorf and Anschlussstelle Liesing, Vienna, Austria",
+    "area": "Municipal border Liesing / Liesing industrial zone",
+    "latitude": 48.1325,
+    "longitude": 16.3210
+  },
+  {
+    "id": "nl-rotterdam-port-quay-7",
+    "name": "Port of Maasvlakte II — Quay 7 Berth Strengthening",
+    "start_date": "2025-02-10",
+    "expected_end_date": "2028-11-01",
+    "description": "Deepening berthing pocket, quay wall reinforcement for heavier crane loads, and onshore power bollard preparation for two vessel classes.",
+    "costs": "EUR 120 million (Port authority capex, phased milestones)",
+    "initiator": "Havenbedrijf Rotterdam N.V. (Port of Rotterdam Authority)",
+    "address": "Maasvlakte 2, Europaweg, 3199 LD Rotterdam, Netherlands",
+    "area": "Container terminal cluster, Maasvlakte 2",
+    "latitude": 51.9605,
+    "longitude": 3.6906
+  }
+]

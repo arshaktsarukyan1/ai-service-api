@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.domain.faq import FaqItem
+from app.domain.location import ConstructionSiteLocation
 from app.domain.tasks import AITask
 
 
@@ -44,3 +46,56 @@ class ErrorResponse(BaseModel):
     error: str = Field(description="Machine-readable error type (snake_case).")
     detail: str = Field(description="Human-readable error description.")
     request_id: str | None = Field(default=None, description="Request trace ID.")
+
+
+class FaqLocationSummary(BaseModel):
+    id: str
+    name: str
+    start_date: str
+    expected_end_date: str
+    description: str
+    costs: str
+    initiator: str
+    address: str
+    area: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+
+    @classmethod
+    def from_domain(cls, location: ConstructionSiteLocation) -> FaqLocationSummary:
+        return cls(
+            id=location.id,
+            name=location.name,
+            start_date=location.start_date.isoformat(),
+            expected_end_date=location.expected_end_date.isoformat(),
+            description=location.description,
+            costs=location.costs,
+            initiator=location.initiator,
+            address=location.address,
+            area=location.area,
+            latitude=location.latitude,
+            longitude=location.longitude,
+        )
+
+
+class FaqMetadata(BaseModel):
+    model: str
+    provider: str
+    latency_ms: int = Field(ge=0)
+    source: str = Field(default="ai_generated")
+    total_tokens: int | None = None
+
+
+class FaqByLocationResponse(BaseModel):
+    location: FaqLocationSummary
+    faqs: list[FaqItem] = Field(min_length=1)
+    generation: FaqMetadata
+
+
+class DevLocationListItem(BaseModel):
+    id: str
+    name: str
+
+
+class DevLocationListResponse(BaseModel):
+    locations: list[DevLocationListItem]

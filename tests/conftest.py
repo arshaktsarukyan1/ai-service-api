@@ -1,26 +1,32 @@
-"""Shared fixtures for the entire test suite."""
-
 import os
 
 import pytest
 from fastapi.testclient import TestClient
 
-# Ensure required env vars are present before any app module is imported.
+# env vars must be set before any app module is imported
 os.environ.setdefault("OPENAI_API_KEY", "test-key-for-tests")
 os.environ.setdefault("ARANGO_PASSWORD", "test-password")
 
 from app.domain.models import AIRequest, AIResponse, AIUsage  # noqa: E402
+from app.domain.tasks import AITask  # noqa: E402
+
+_FAQ_JSON = (
+    '{"faqs": [{"question": "What is the project about?", '
+    '"answer": "See the description field in the data."}]}'
+)
 
 
 class MockProvider:
-    """A no-op provider that satisfies the AIProvider protocol."""
-
     name = "mock"
 
     async def execute(self, request: AIRequest) -> AIResponse:
+        if request.task is AITask.faq_generation:
+            content = _FAQ_JSON
+        else:
+            content = f"mocked:{request.input_text}"
         return AIResponse(
             task=request.task,
-            content=f"mocked:{request.input_text}",
+            content=content,
             provider="mock",
             model="mock-model",
             usage=AIUsage(prompt_tokens=5, completion_tokens=10, total_tokens=15),
@@ -43,10 +49,11 @@ def client(monkeypatch, mock_provider: MockProvider) -> TestClient:
 
     monkeypatch.setattr(route_mod, "get_active_provider", lambda cfg: mock_provider)
 
-    # Also patch the readiness endpoint's provider lookup.
     import app.api.routes as routes_mod
+    import app.interfaces.faq_routes as faq_routes
 
     monkeypatch.setattr(routes_mod, "get_active_provider", lambda cfg: mock_provider)
+    monkeypatch.setattr(faq_routes, "get_active_provider", lambda cfg: mock_provider)
 
     from app.core.config import get_settings
     from app.main import create_app
