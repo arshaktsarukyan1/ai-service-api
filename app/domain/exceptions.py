@@ -28,3 +28,23 @@ class LocationNotFoundError(AIServiceError):
 
 class FaqResponseParseError(AIServiceError):
     """The AI model output could not be parsed into structured FAQ items."""
+
+
+class VoiceServiceError(AIServiceError):
+    """Base exception for voice interaction errors."""
+
+
+class VoiceAudioValidationError(VoiceServiceError):
+    """Audio input is missing, too large, malformed, or uses an unsupported format."""
+
+
+class VoiceTranscriptionError(VoiceServiceError):
+    """Speech-to-text processing failed."""
+
+
+class VoiceSynthesisError(VoiceServiceError):
+    """Text-to-speech processing failed."""
+
+
+class VoiceSessionError(VoiceServiceError):
+    """Voice session state or protocol handling failed."""

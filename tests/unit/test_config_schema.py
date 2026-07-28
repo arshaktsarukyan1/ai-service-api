@@ -9,6 +9,7 @@ from app.infrastructure.config_schema import (
     DatabaseConfig,
     ProviderConfig,
     RetryConfig,
+    VoiceConfig,
 )
 
 
@@ -109,3 +110,46 @@ def test_providers_config_with_database() -> None:
         database=DatabaseConfig(arangodb=ArangoDBConfig()),
     )
     assert cfg.database.arangodb.port == 8529
+
+
+# --- VoiceConfig ---
+
+
+def test_voice_config_defaults() -> None:
+    cfg = VoiceConfig()
+    assert cfg.stt_model == "gpt-4o-mini-transcribe"
+    assert cfg.tts_model == "gpt-4o-mini-tts"
+    assert cfg.tts_voice == "alloy"
+    assert cfg.language == "de"
+    assert cfg.input_format == "webm"
+    assert cfg.output_format == "mp3"
+    assert cfg.max_audio_bytes == 5_000_000
+    assert cfg.session_timeout_seconds == 60
+
+
+def test_voice_config_rejects_invalid_language() -> None:
+    with pytest.raises(ValidationError):
+        VoiceConfig(language="de_DE")
+
+
+def test_voice_config_rejects_invalid_input_format() -> None:
+    with pytest.raises(ValidationError):
+        VoiceConfig(input_format="raw")
+
+
+def test_voice_config_rejects_invalid_output_format() -> None:
+    with pytest.raises(ValidationError):
+        VoiceConfig(output_format="raw")
+
+
+def test_voice_config_rejects_oversized_max_audio_bytes() -> None:
+    with pytest.raises(ValidationError):
+        VoiceConfig(max_audio_bytes=25_000_001)
+
+
+def test_providers_config_voice_defaults() -> None:
+    cfg = AIProvidersConfig(
+        active_provider="openai",
+        providers={"openai": ProviderConfig(**_valid_provider())},
+    )
+    assert cfg.voice.language == "de"
