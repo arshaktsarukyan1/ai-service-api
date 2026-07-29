@@ -103,6 +103,12 @@ async def _send_error(
 
 
 def _error_from_exception(exc: Exception) -> tuple[str, str, int]:
+    if isinstance(exc, ValidationError):
+        return (
+            "voice_session_error",
+            "Voice session payload failed validation.",
+            status.WS_1008_POLICY_VIOLATION,
+        )
     if isinstance(exc, LocationNotFoundError):
         return "location_not_found", str(exc), status.WS_1008_POLICY_VIOLATION
     if isinstance(exc, VoiceAudioValidationError):

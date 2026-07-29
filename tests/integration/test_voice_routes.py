@@ -179,6 +179,17 @@ def test_voice_websocket_successful_turn(monkeypatch) -> None:
         assert complete["total_tokens"] == 12
 
 
+def test_voice_websocket_generates_default_session_id(monkeypatch) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        ws.send_json({"type": "session.start", "language": "de"})
+        ready = ws.receive_json()
+        assert ready["type"] == "session.ready"
+        assert ready["session_id"]
+        assert ready["max_audio_bytes"] == 5_000_000
+
+
 def test_voice_websocket_successful_trigger_commit(monkeypatch) -> None:
     client = _client(monkeypatch)
 
@@ -205,6 +216,17 @@ def test_voice_websocket_successful_trigger_commit(monkeypatch) -> None:
         assert complete["total_tokens"] == 9
 
 
+def test_voice_websocket_rejects_trigger_before_session(monkeypatch) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        ws.send_json({"type": "trigger.commit", "session_id": "session-1"})
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["error"] == "voice_session_error"
+        assert "session.start" in error["detail"]
+
+
 def test_voice_websocket_rejects_audio_before_session(monkeypatch) -> None:
     client = _client(monkeypatch)
 
@@ -222,6 +244,17 @@ def test_voice_websocket_rejects_audio_before_session(monkeypatch) -> None:
         assert "session.start" in error["detail"]
 
 
+def test_voice_websocket_rejects_non_object_json(monkeypatch) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        ws.send_text("[]")
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["error"] == "voice_session_error"
+        assert "JSON object" in error["detail"]
+
+
 def test_voice_websocket_rejects_invalid_json(monkeypatch) -> None:
     client = _client(monkeypatch)
 
@@ -231,6 +264,66 @@ def test_voice_websocket_rejects_invalid_json(monkeypatch) -> None:
         assert error["type"] == "error"
         assert error["error"] == "voice_session_error"
         assert "valid JSON" in error["detail"]
+
+
+def test_voice_websocket_rejects_duplicate_session_start(monkeypatch) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        _start_session(ws)
+        ws.send_json({"type": "session.start", "session_id": "session-2"})
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["error"] == "voice_session_error"
+        assert "already started" in error["detail"]
+
+
+def test_voice_websocket_rejects_session_id_mismatch(monkeypatch) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        _start_session(ws)
+        ws.send_json(
+            {
+                "type": "audio.chunk",
+                "session_id": "other-session",
+                "audio_base64": _audio_chunk(),
+            }
+        )
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["error"] == "voice_session_error"
+        assert "Session id mismatch" in error["detail"]
+
+
+def test_voice_websocket_rejects_missing_audio_base64(monkeypatch) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        _start_session(ws)
+        ws.send_json({"type": "audio.chunk", "session_id": "session-1"})
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["error"] == "voice_audio_validation_error"
+        assert "audio_base64" in error["detail"]
+
+
+def test_voice_websocket_rejects_invalid_base64_audio(monkeypatch) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        _start_session(ws)
+        ws.send_json(
+            {
+                "type": "audio.chunk",
+                "session_id": "session-1",
+                "audio_base64": "not base64",
+            }
+        )
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["error"] == "voice_audio_validation_error"
+        assert "valid base64" in error["detail"]
 
 
 def test_voice_websocket_rejects_oversized_audio(monkeypatch) -> None:
@@ -249,6 +342,39 @@ def test_voice_websocket_rejects_oversized_audio(monkeypatch) -> None:
         assert error["type"] == "error"
         assert error["error"] == "voice_audio_validation_error"
         assert "exceeds max size" in error["detail"]
+
+
+def test_voice_websocket_rejects_invalid_trigger_payload(monkeypatch) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        ws.send_json(
+            {
+                "type": "session.start",
+                "session_id": "session-1",
+                "trigger": "not-object",
+            }
+        )
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["error"] == "voice_session_error"
+        assert "trigger" in error["detail"]
+
+
+def test_voice_websocket_rejects_invalid_trigger_source(monkeypatch) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        ws.send_json(
+            {
+                "type": "session.start",
+                "session_id": "session-1",
+                "trigger": {"source": "invalid"},
+            }
+        )
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["error"] == "voice_session_error"
 
 
 def test_voice_websocket_rejects_unknown_location(monkeypatch) -> None:
@@ -277,6 +403,26 @@ def test_voice_websocket_rejects_unknown_location(monkeypatch) -> None:
         assert "missing-location" in error["detail"]
 
 
+def test_voice_websocket_rejects_unknown_location_for_trigger_commit(
+    monkeypatch,
+) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        _start_session(
+            ws,
+            trigger={
+                "source": "app_event",
+                "location_id": "missing-location",
+                "event_type": "location_entered",
+            },
+        )
+        ws.send_json({"type": "trigger.commit", "session_id": "session-1"})
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["error"] == "location_not_found"
+
+
 def test_voice_websocket_rejects_commit_without_audio(monkeypatch) -> None:
     client = _client(monkeypatch)
 
@@ -287,6 +433,18 @@ def test_voice_websocket_rejects_commit_without_audio(monkeypatch) -> None:
         assert error["type"] == "error"
         assert error["error"] == "voice_audio_validation_error"
         assert "No audio chunks" in error["detail"]
+
+
+def test_voice_websocket_rejects_unsupported_event_type(monkeypatch) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        _start_session(ws)
+        ws.send_json({"type": "unknown.event", "session_id": "session-1"})
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["error"] == "voice_session_error"
+        assert "Unsupported voice event type" in error["detail"]
 
 
 def test_voice_websocket_maps_provider_failure(monkeypatch) -> None:

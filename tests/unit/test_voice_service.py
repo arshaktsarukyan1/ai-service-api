@@ -6,7 +6,13 @@ from app.application.voice_service import (
     resolve_voice_intent,
     validate_audio_input,
 )
-from app.domain.exceptions import VoiceAudioValidationError, VoiceSynthesisError
+from app.domain.exceptions import (
+    AIProviderError,
+    VoiceAudioValidationError,
+    VoiceSynthesisError,
+    VoiceTranscriptionError,
+)
+from app.domain.location import ConstructionSiteLocation
 from app.domain.models import AIRequest, AIResponse, AIUsage
 from app.domain.voice import (
     AudioInput,
@@ -25,6 +31,11 @@ class _SpeechToText:
         return Transcript(text="Was ist hier?", language="de")
 
 
+class _FailingSpeechToText:
+    async def transcribe(self, audio: AudioInput) -> Transcript:
+        raise VoiceTranscriptionError("stt failed")
+
+
 class _TextToSpeech:
     def __init__(self) -> None:
         self.text = ""
@@ -38,6 +49,15 @@ class _TextToSpeech:
         self.text = text
         self.options = options
         return AudioOutput(content=b"audio", format=options.output_format)
+
+
+class _FailingTextToSpeech:
+    async def synthesize(
+        self,
+        text: str,
+        options: SpeechSynthesisOptions,
+    ) -> AudioOutput:
+        raise VoiceSynthesisError("tts failed")
 
 
 class _AIProvider:
@@ -59,10 +79,30 @@ class _AIProvider:
         )
 
 
+class _FailingAIProvider:
+    name = "mock"
+
+    async def execute(self, request: AIRequest) -> AIResponse:
+        raise AIProviderError("ai failed")
+
+
 def _provider_config() -> ProviderConfig:
     return ProviderConfig(
         api_key_env="OPENAI_API_KEY",
         default_model="gpt-4o-mini",
+    )
+
+
+def _location() -> ConstructionSiteLocation:
+    return ConstructionSiteLocation(
+        id="site-1",
+        name="Berlin Station Upgrade",
+        start_date="2024-09-01",
+        expected_end_date="2027-12-15",
+        description="Accessibility upgrades.",
+        costs="EUR 38.5 million",
+        initiator="Deutsche Bahn",
+        address="Invalidenstrasse 1, Berlin",
     )
 
 
@@ -89,6 +129,35 @@ def test_validate_audio_input_rejects_unconfigured_format() -> None:
         )
 
 
+def test_validate_audio_input_rejects_non_audio_mime_type() -> None:
+    with pytest.raises(VoiceAudioValidationError, match="Unsupported audio MIME type"):
+        validate_audio_input(
+            AudioInput(content=b"abc", format="webm", mime_type="application/json"),
+            VoiceConfig(input_format="webm"),
+        )
+
+
+def test_resolve_voice_intent_defaults_to_voice_assistant() -> None:
+    intent = resolve_voice_intent(VoiceSession())
+    assert intent.name == "voice_assistant"
+    assert intent.confidence is None
+    assert intent.parameters == {}
+
+
+def test_resolve_voice_intent_for_proximity_alert() -> None:
+    intent = resolve_voice_intent(
+        VoiceSession(
+            trigger=VoiceTrigger(
+                source=VoiceTriggerSource.proximity_alert,
+                metadata={"distance_meters": 120},
+            )
+        )
+    )
+    assert intent.name == "proximity_alert"
+    assert intent.confidence == 1.0
+    assert intent.parameters["distance_meters"] == 120
+
+
 def test_resolve_voice_intent_for_app_trigger() -> None:
     intent = resolve_voice_intent(
         VoiceSession(
@@ -102,6 +171,14 @@ def test_resolve_voice_intent_for_app_trigger() -> None:
     assert intent.name == "location_entered"
     assert intent.confidence == 1.0
     assert intent.parameters["location_id"] == "site-1"
+
+
+def test_resolve_voice_intent_for_system_event_without_event_type() -> None:
+    intent = resolve_voice_intent(
+        VoiceSession(trigger=VoiceTrigger(source=VoiceTriggerSource.system_event))
+    )
+    assert intent.name == "system_event"
+    assert intent.confidence == 1.0
 
 
 def test_build_trigger_transcript_includes_event_and_location_id() -> None:
@@ -118,6 +195,20 @@ def test_build_trigger_transcript_includes_event_and_location_id() -> None:
         "App-triggered voice event 'nearby_construction' for location site-1."
     )
     assert transcript.confidence == 1.0
+
+
+def test_build_trigger_transcript_prefers_location_name_when_available() -> None:
+    transcript = build_trigger_transcript(
+        VoiceSession(
+            trigger=VoiceTrigger(
+                source=VoiceTriggerSource.app_event,
+                location_id="site-1",
+                event_type="location_entered",
+            )
+        ),
+        _location(),
+    )
+    assert "Berlin Station Upgrade (site-1)" in transcript.text
 
 
 async def test_voice_service_process_turn_runs_full_pipeline() -> None:
@@ -151,6 +242,84 @@ async def test_voice_service_process_turn_runs_full_pipeline() -> None:
     assert ai_provider.request.metadata["session_id"] == "session-1"
 
 
+async def test_voice_service_process_turn_uses_default_session() -> None:
+    service = VoiceService(
+        speech_to_text=_SpeechToText(),
+        text_to_speech=_TextToSpeech(),
+        ai_provider=_AIProvider(),
+        provider_config=_provider_config(),
+        voice_config=VoiceConfig(language="de"),
+    )
+
+    turn = await service.process_turn(
+        AudioInput(content=b"abc", format="webm", mime_type="audio/webm")
+    )
+
+    assert turn.session.language == "de"
+    assert turn.session.trigger.source is VoiceTriggerSource.explicit_user_request
+
+
+async def test_voice_service_process_turn_uses_custom_tts_config() -> None:
+    tts = _TextToSpeech()
+    service = VoiceService(
+        speech_to_text=_SpeechToText(),
+        text_to_speech=tts,
+        ai_provider=_AIProvider(),
+        provider_config=_provider_config(),
+        voice_config=VoiceConfig(tts_voice="verse", output_format="wav"),
+    )
+
+    turn = await service.process_turn(
+        AudioInput(content=b"abc", format="webm", mime_type="audio/webm")
+    )
+
+    assert turn.audio.format == "wav"
+    assert tts.options is not None
+    assert tts.options.voice == "verse"
+
+
+async def test_voice_service_process_turn_propagates_stt_failure() -> None:
+    service = VoiceService(
+        speech_to_text=_FailingSpeechToText(),
+        text_to_speech=_TextToSpeech(),
+        ai_provider=_AIProvider(),
+        provider_config=_provider_config(),
+        voice_config=VoiceConfig(),
+    )
+    with pytest.raises(VoiceTranscriptionError, match="stt failed"):
+        await service.process_turn(
+            AudioInput(content=b"abc", format="webm", mime_type="audio/webm")
+        )
+
+
+async def test_voice_service_process_turn_propagates_ai_failure() -> None:
+    service = VoiceService(
+        speech_to_text=_SpeechToText(),
+        text_to_speech=_TextToSpeech(),
+        ai_provider=_FailingAIProvider(),
+        provider_config=_provider_config(),
+        voice_config=VoiceConfig(),
+    )
+    with pytest.raises(AIProviderError, match="ai failed"):
+        await service.process_turn(
+            AudioInput(content=b"abc", format="webm", mime_type="audio/webm")
+        )
+
+
+async def test_voice_service_process_turn_propagates_tts_failure() -> None:
+    service = VoiceService(
+        speech_to_text=_SpeechToText(),
+        text_to_speech=_FailingTextToSpeech(),
+        ai_provider=_AIProvider(),
+        provider_config=_provider_config(),
+        voice_config=VoiceConfig(),
+    )
+    with pytest.raises(VoiceSynthesisError, match="tts failed"):
+        await service.process_turn(
+            AudioInput(content=b"abc", format="webm", mime_type="audio/webm")
+        )
+
+
 async def test_voice_service_process_trigger_runs_without_stt() -> None:
     tts = _TextToSpeech()
     ai_provider = _AIProvider()
@@ -178,6 +347,31 @@ async def test_voice_service_process_trigger_runs_without_stt() -> None:
     assert turn.audio.content == b"audio"
     assert ai_provider.request is not None
     assert "App-triggered voice event" in ai_provider.request.input_text
+
+
+async def test_voice_service_process_trigger_uses_location_context() -> None:
+    ai_provider = _AIProvider()
+    service = VoiceService(
+        speech_to_text=_FailingSpeechToText(),
+        text_to_speech=_TextToSpeech(),
+        ai_provider=ai_provider,
+        provider_config=_provider_config(),
+        voice_config=VoiceConfig(),
+    )
+    session = VoiceSession(
+        id="session-1",
+        trigger=VoiceTrigger(
+            source=VoiceTriggerSource.proximity_alert,
+            location_id="site-1",
+            event_type="nearby_construction",
+        ),
+    )
+
+    turn = await service.process_trigger(session=session, location=_location())
+
+    assert "Berlin Station Upgrade" in turn.transcript.text
+    assert ai_provider.request is not None
+    assert "Berlin Station Upgrade" in ai_provider.request.input_text
 
 
 async def test_voice_service_rejects_empty_ai_response_before_tts() -> None:

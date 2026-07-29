@@ -62,6 +62,17 @@ def test_build_voice_prompt_is_german_first_and_includes_trigger_context() -> No
     assert "Berlin Central Station Upgrade" in prompt
 
 
+def test_build_voice_prompt_handles_missing_location_context() -> None:
+    session = VoiceSession(id="session-1")
+    prompt = build_voice_assistant_prompt(
+        Transcript(text="Was ist los?", language="de"),
+        session,
+    )
+    assert "no location record was provided" in prompt
+    assert "explicit_user_request" in prompt
+    assert "none" in prompt
+
+
 async def test_generate_voice_response_uses_voice_assistant_task_and_metadata() -> None:
     provider = _CapturingProvider()
     session = VoiceSession(
@@ -87,3 +98,23 @@ async def test_generate_voice_response_uses_voice_assistant_task_and_metadata() 
     assert provider.request.metadata["session_id"] == "session-1"
     assert provider.request.metadata["trigger_source"] == "app_event"
     assert provider.request.metadata["event_type"] == "location_entered"
+
+
+async def test_generate_voice_response_allows_missing_optional_metadata() -> None:
+    provider = _CapturingProvider()
+    session = VoiceSession(id="session-1")
+
+    await generate_voice_response(
+        Transcript(text="Hallo", language="de"),
+        session,
+        provider=provider,
+        provider_config=ProviderConfig(
+            api_key_env="OPENAI_API_KEY",
+            default_model="gpt-4o-mini",
+        ),
+    )
+
+    assert provider.request is not None
+    assert provider.request.metadata["location_id"] is None
+    assert provider.request.metadata["event_type"] is None
+    assert provider.request.metadata["trigger_source"] == "explicit_user_request"
