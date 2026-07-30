@@ -13,6 +13,11 @@ from app.domain.exceptions import (
     AIUnsupportedTaskError,
     FaqResponseParseError,
     LocationNotFoundError,
+    VoiceAudioValidationError,
+    VoiceServiceError,
+    VoiceSessionError,
+    VoiceSynthesisError,
+    VoiceTranscriptionError,
 )
 from app.interfaces.schemas import ErrorResponse
 
@@ -66,6 +71,71 @@ def register_error_handlers(app: FastAPI) -> None:
                 "The AI response could not be converted into structured FAQs. "
                 "Please retry."
             ),
+            rid,
+        )
+
+    @app.exception_handler(VoiceAudioValidationError)
+    async def handle_voice_audio_validation_error(
+        request: Request, exc: VoiceAudioValidationError
+    ) -> JSONResponse:
+        rid = _request_id(request)
+        logger.warning("Voice audio validation error request_id=%s detail=%s", rid, exc)
+        return _json_error(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "voice_audio_validation_error",
+            str(exc),
+            rid,
+        )
+
+    @app.exception_handler(VoiceSessionError)
+    async def handle_voice_session_error(
+        request: Request, exc: VoiceSessionError
+    ) -> JSONResponse:
+        rid = _request_id(request)
+        logger.warning("Voice session error request_id=%s detail=%s", rid, exc)
+        return _json_error(
+            status.HTTP_400_BAD_REQUEST,
+            "voice_session_error",
+            str(exc),
+            rid,
+        )
+
+    @app.exception_handler(VoiceTranscriptionError)
+    async def handle_voice_transcription_error(
+        request: Request, exc: VoiceTranscriptionError
+    ) -> JSONResponse:
+        rid = _request_id(request)
+        logger.error("Voice transcription error request_id=%s detail=%s", rid, exc)
+        return _json_error(
+            status.HTTP_502_BAD_GATEWAY,
+            "voice_transcription_error",
+            "Speech-to-text processing failed. Please retry.",
+            rid,
+        )
+
+    @app.exception_handler(VoiceSynthesisError)
+    async def handle_voice_synthesis_error(
+        request: Request, exc: VoiceSynthesisError
+    ) -> JSONResponse:
+        rid = _request_id(request)
+        logger.error("Voice synthesis error request_id=%s detail=%s", rid, exc)
+        return _json_error(
+            status.HTTP_502_BAD_GATEWAY,
+            "voice_synthesis_error",
+            "Text-to-speech processing failed. Please retry.",
+            rid,
+        )
+
+    @app.exception_handler(VoiceServiceError)
+    async def handle_voice_service_error(
+        request: Request, exc: VoiceServiceError
+    ) -> JSONResponse:
+        rid = _request_id(request)
+        logger.error("Voice service error request_id=%s detail=%s", rid, exc)
+        return _json_error(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "voice_service_error",
+            "An internal voice service error occurred.",
             rid,
         )
 

@@ -36,6 +36,15 @@ database:
     username: root
     password_env: ARANGO_PASSWORD
     database: ai_service
+voice:
+  stt_model: gpt-4o-mini-transcribe
+  tts_model: gpt-4o-mini-tts
+  tts_voice: alloy
+  language: de
+  input_format: webm
+  output_format: mp3
+  max_audio_bytes: 5000000
+  session_timeout_seconds: 60
 """
 
 
@@ -65,6 +74,8 @@ def test_load_full_config(tmp_path: Path) -> None:
     assert cfg.database is not None
     assert cfg.database.arangodb is not None
     assert cfg.database.arangodb.port == 8529
+    assert cfg.voice.language == "de"
+    assert cfg.voice.stt_model == "gpt-4o-mini-transcribe"
 
 
 def test_missing_file_raises_file_not_found(tmp_path: Path) -> None:
@@ -115,6 +126,29 @@ def test_database_section_is_optional(tmp_path: Path) -> None:
     cfg_file.write_text(MINIMAL_VALID_YAML)
     cfg = load_ai_config(cfg_file)
     assert cfg.database is None
+
+
+def test_voice_section_defaults_when_omitted(tmp_path: Path) -> None:
+    cfg_file = tmp_path / "ai.yaml"
+    cfg_file.write_text(MINIMAL_VALID_YAML)
+    cfg = load_ai_config(cfg_file)
+    assert cfg.voice.tts_model == "gpt-4o-mini-tts"
+
+
+def test_invalid_voice_section_raises_validation_error(tmp_path: Path) -> None:
+    bad_yaml = """\
+active_provider: openai
+providers:
+  openai:
+    api_key_env: OPENAI_API_KEY
+    default_model: gpt-4o-mini
+voice:
+  input_format: raw
+"""
+    cfg_file = tmp_path / "bad_voice.yaml"
+    cfg_file.write_text(bad_yaml)
+    with pytest.raises(ValidationError):
+        load_ai_config(cfg_file)
 
 
 def test_task_models_override(tmp_path: Path) -> None:

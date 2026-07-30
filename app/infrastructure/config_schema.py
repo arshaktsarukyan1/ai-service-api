@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.domain.tasks import AITask
@@ -37,12 +39,31 @@ class DatabaseConfig(BaseModel):
     arangodb: ArangoDBConfig | None = None
 
 
+class VoiceConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    stt_model: str = Field(default="gpt-4o-mini-transcribe", min_length=1)
+    tts_model: str = Field(default="gpt-4o-mini-tts", min_length=1)
+    tts_voice: str = Field(default="alloy", min_length=1)
+    language: str = Field(
+        default="de",
+        min_length=2,
+        max_length=12,
+        pattern=r"^[a-z]{2,3}(-[A-Za-z0-9]+)*$",
+    )
+    input_format: Literal["webm", "wav", "mp3", "m4a", "ogg"] = "webm"
+    output_format: Literal["mp3", "wav", "opus", "aac", "flac"] = "mp3"
+    max_audio_bytes: int = Field(default=5_000_000, ge=1, le=25_000_000)
+    session_timeout_seconds: int = Field(default=60, ge=5, le=600)
+
+
 class AIProvidersConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     active_provider: str
     providers: dict[str, ProviderConfig]
     database: DatabaseConfig | None = None
+    voice: VoiceConfig = Field(default_factory=VoiceConfig)
 
     @model_validator(mode="after")
     def active_provider_must_exist(self) -> AIProvidersConfig:

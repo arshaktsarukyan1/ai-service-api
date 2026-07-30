@@ -22,3 +22,13 @@ database:
     username: root
     password_env: ARANGO_PASSWORD
     database: ai_service
+
+voice:
+  stt_model: gpt-4o-mini-transcribe
+  tts_model: gpt-4o-mini-tts
+  tts_voice: alloy
+  language: de
+  input_format: webm
+  output_format: mp3
+  max_audio_bytes: 5000000
+  session_timeout_seconds: 60
