@@ -45,6 +45,13 @@ voice:
   output_format: mp3
   max_audio_bytes: 5000000
   session_timeout_seconds: 60
+geofencing:
+  default_radius_meters: 250
+  min_radius_meters: 25
+  max_radius_meters: 1000
+  exit_hysteresis_meters: 50
+  trigger_cooldown_seconds: 120
+  max_acceptable_accuracy_meters: 75
 """
 
 
@@ -76,6 +83,8 @@ def test_load_full_config(tmp_path: Path) -> None:
     assert cfg.database.arangodb.port == 8529
     assert cfg.voice.language == "de"
     assert cfg.voice.stt_model == "gpt-4o-mini-transcribe"
+    assert cfg.geofencing.default_radius_meters == 250
+    assert cfg.geofencing.max_acceptable_accuracy_meters == 75
 
 
 def test_missing_file_raises_file_not_found(tmp_path: Path) -> None:
@@ -133,6 +142,13 @@ def test_voice_section_defaults_when_omitted(tmp_path: Path) -> None:
     cfg_file.write_text(MINIMAL_VALID_YAML)
     cfg = load_ai_config(cfg_file)
     assert cfg.voice.tts_model == "gpt-4o-mini-tts"
+
+
+def test_geofencing_section_defaults_when_omitted(tmp_path: Path) -> None:
+    cfg_file = tmp_path / "ai.yaml"
+    cfg_file.write_text(MINIMAL_VALID_YAML)
+    cfg = load_ai_config(cfg_file)
+    assert cfg.geofencing.default_radius_meters == 100
 
 
 def test_invalid_voice_section_raises_validation_error(tmp_path: Path) -> None:

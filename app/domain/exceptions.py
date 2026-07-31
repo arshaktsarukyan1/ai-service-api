@@ -26,6 +26,10 @@ class LocationNotFoundError(AIServiceError):
     """No construction-site / project record exists for the given identifier."""
 
 
+class GeoFenceValidationError(AIServiceError):
+    """Geo-fencing request values are invalid or outside configured limits."""
+
+
 class FaqResponseParseError(AIServiceError):
     """The AI model output could not be parsed into structured FAQ items."""
 

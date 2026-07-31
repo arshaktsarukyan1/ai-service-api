@@ -7,6 +7,7 @@ from app.infrastructure.config_schema import (
     AIProvidersConfig,
     ArangoDBConfig,
     DatabaseConfig,
+    GeoFencingConfig,
     ProviderConfig,
     RetryConfig,
     VoiceConfig,
@@ -153,3 +154,84 @@ def test_providers_config_voice_defaults() -> None:
         providers={"openai": ProviderConfig(**_valid_provider())},
     )
     assert cfg.voice.language == "de"
+
+
+# --- GeoFencingConfig ---
+
+
+def test_geofencing_config_defaults() -> None:
+    cfg = GeoFencingConfig()
+    assert cfg.default_radius_meters == 100
+    assert cfg.min_radius_meters == 10
+    assert cfg.max_radius_meters == 5000
+    assert cfg.exit_hysteresis_meters == 25
+    assert cfg.trigger_cooldown_seconds == 60
+    assert cfg.max_acceptable_accuracy_meters == 100
+
+
+def test_geofencing_config_accepts_custom_valid_values() -> None:
+    cfg = GeoFencingConfig(
+        default_radius_meters=250,
+        min_radius_meters=25,
+        max_radius_meters=1000,
+        exit_hysteresis_meters=50,
+        trigger_cooldown_seconds=120,
+        max_acceptable_accuracy_meters=75,
+    )
+
+    assert cfg.default_radius_meters == 250
+    assert cfg.min_radius_meters == 25
+    assert cfg.max_radius_meters == 1000
+    assert cfg.exit_hysteresis_meters == 50
+    assert cfg.trigger_cooldown_seconds == 120
+    assert cfg.max_acceptable_accuracy_meters == 75
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    [
+        "default_radius_meters",
+        "min_radius_meters",
+        "max_radius_meters",
+        "max_acceptable_accuracy_meters",
+    ],
+)
+def test_geofencing_config_rejects_positive_fields_below_minimum(
+    field_name: str,
+) -> None:
+    with pytest.raises(ValidationError):
+        GeoFencingConfig(**{field_name: 0})
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    ["exit_hysteresis_meters", "trigger_cooldown_seconds"],
+)
+def test_geofencing_config_rejects_non_negative_fields_below_minimum(
+    field_name: str,
+) -> None:
+    with pytest.raises(ValidationError):
+        GeoFencingConfig(**{field_name: -1})
+
+
+def test_geofencing_config_rejects_min_radius_above_default() -> None:
+    with pytest.raises(ValidationError, match="min_radius_meters"):
+        GeoFencingConfig(min_radius_meters=101, default_radius_meters=100)
+
+
+def test_geofencing_config_rejects_default_radius_above_max() -> None:
+    with pytest.raises(ValidationError, match="default_radius_meters"):
+        GeoFencingConfig(default_radius_meters=5001, max_radius_meters=5000)
+
+
+def test_geofencing_config_rejects_hysteresis_above_max_radius() -> None:
+    with pytest.raises(ValidationError, match="exit_hysteresis_meters"):
+        GeoFencingConfig(exit_hysteresis_meters=5001, max_radius_meters=5000)
+
+
+def test_providers_config_geofencing_defaults() -> None:
+    cfg = AIProvidersConfig(
+        active_provider="openai",
+        providers={"openai": ProviderConfig(**_valid_provider())},
+    )
+    assert cfg.geofencing.default_radius_meters == 100

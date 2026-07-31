@@ -12,6 +12,7 @@ from app.domain.exceptions import (
     AITimeoutError,
     AIUnsupportedTaskError,
     FaqResponseParseError,
+    GeoFenceValidationError,
     LocationNotFoundError,
     VoiceAudioValidationError,
     VoiceServiceError,
@@ -71,6 +72,19 @@ def register_error_handlers(app: FastAPI) -> None:
                 "The AI response could not be converted into structured FAQs. "
                 "Please retry."
             ),
+            rid,
+        )
+
+    @app.exception_handler(GeoFenceValidationError)
+    async def handle_geo_fence_validation_error(
+        request: Request, exc: GeoFenceValidationError
+    ) -> JSONResponse:
+        rid = _request_id(request)
+        logger.warning("Geo-fence validation error request_id=%s detail=%s", rid, exc)
+        return _json_error(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "geo_fence_validation_error",
+            str(exc),
             rid,
         )
 

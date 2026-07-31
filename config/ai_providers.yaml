@@ -32,3 +32,11 @@ voice:
   output_format: mp3
   max_audio_bytes: 5000000
   session_timeout_seconds: 60
+
+geofencing:
+  default_radius_meters: 100
+  min_radius_meters: 10
+  max_radius_meters: 5000
+  exit_hysteresis_meters: 25
+  trigger_cooldown_seconds: 60
+  max_acceptable_accuracy_meters: 100

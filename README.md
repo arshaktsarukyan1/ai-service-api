@@ -1,6 +1,7 @@
 # AI Service API
 
-FastAPI backend for AI task execution, FAQ generation, and voice interaction.
+FastAPI backend for AI task execution, FAQ generation, voice interaction, and
+geo-fencing support.
 
 ## Requirements
 
@@ -45,6 +46,9 @@ Open:
 - `GET /ready`
 - `GET /faq/locations`
 - `GET /faq/{location_id}`
+- `GET /geo/config`
+- `GET /geo/fences`
+- `POST /geo/check`
 - `GET /internal/ai/provider`
 - `POST /internal/ai/execute`
 - `WS /ws/voice`
@@ -73,6 +77,67 @@ Voice settings are in the `voice` block:
 - `input_format`: browser audio format, default `webm`
 - `output_format`: generated audio format, default `mp3`
 - `max_audio_bytes`: maximum audio per turn
+
+Geo-fencing settings are in the `geofencing` block:
+
+- `default_radius_meters`: default detection radius, default `100`
+- `min_radius_meters`: smallest accepted radius override, default `10`
+- `max_radius_meters`: largest accepted radius override, default `5000`
+- `exit_hysteresis_meters`: exit buffer to avoid GPS boundary jitter, default `25`
+- `trigger_cooldown_seconds`: frontend trigger cooldown guidance, default `60`
+- `max_acceptable_accuracy_meters`: maximum GPS accuracy for automatic triggers,
+  default `100`
+
+## Geo-Fencing API
+
+Geo-fencing v1 uses development construction-site data from
+`app/infrastructure/data/dev_construction_sites.json`. Locations without complete
+coordinates are skipped. No database persistence or migrations are required.
+
+Load frontend-safe config:
+
+```bash
+curl http://127.0.0.1:8000/geo/config
+```
+
+Load geofences with the default radius:
+
+```bash
+curl http://127.0.0.1:8000/geo/fences
+```
+
+Load geofences with a custom radius:
+
+```bash
+curl "http://127.0.0.1:8000/geo/fences?radius_meters=250"
+```
+
+Check a developer-provided coordinate against configured geofences:
+
+```bash
+curl -X POST http://127.0.0.1:8000/geo/check \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_location": {
+      "latitude": 52.525,
+      "longitude": 13.3692,
+      "accuracy_meters": 10
+    },
+    "radius_meters": 100
+  }'
+```
+
+Expected event values:
+
+- `entered`: user crossed into a geofence and a trigger is recommended
+- `inside`: user remains inside a geofence; no repeated trigger
+- `outside`: user is outside a geofence
+- `exited`: user moved outside the geofence plus hysteresis buffer
+- `uncertain`: location accuracy is too low for an automatic trigger
+
+The Nuxt console uses `/api/geo/*` server routes to proxy these backend
+endpoints, then combines browser geolocation with the existing voice WebSocket
+for opt-in proximity alerts.
 
 ## Voice WebSocket
 
@@ -116,4 +181,14 @@ There are no migrations to run yet.
 ```bash
 uv run pytest
 uv run ruff check .
+```
+
+Geo-fencing focused checks:
+
+```bash
+uv run pytest \
+  tests/unit/test_geo_domain.py \
+  tests/unit/test_geo_service.py \
+  tests/integration/test_geo_routes.py \
+  tests/integration/test_voice_routes.py
 ```

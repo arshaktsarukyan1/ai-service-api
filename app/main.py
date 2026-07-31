@@ -13,6 +13,7 @@ from app.core.logging_config import configure_logging
 from app.core.middleware import RequestIDMiddleware
 from app.infrastructure.yaml_config import load_ai_config
 from app.interfaces.faq_routes import router as faq_router
+from app.interfaces.geo_routes import router as geo_router
 from app.interfaces.internal_routes import router as internal_router
 from app.interfaces.voice_routes import router as voice_router
 
@@ -56,6 +57,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(faq_router)
+    app.include_router(geo_router)
     app.include_router(internal_router)
     app.include_router(voice_router)
 

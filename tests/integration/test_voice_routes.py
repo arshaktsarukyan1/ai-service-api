@@ -11,6 +11,7 @@ from app.domain.voice import (
     Intent,
     Transcript,
     VoiceSession,
+    VoiceTriggerSource,
     VoiceTurn,
 )
 from app.infrastructure.config_schema import (
@@ -214,6 +215,77 @@ def test_voice_websocket_successful_trigger_commit(monkeypatch) -> None:
         assert assistant["text"] == "Achtung, Baustelle in der Nähe."
         assert base64.b64decode(audio["audio_base64"]) == b"trigger-audio"
         assert complete["total_tokens"] == 9
+
+
+def test_voice_websocket_successful_proximity_trigger_commit(monkeypatch) -> None:
+    service = _MockVoiceService()
+    client = _client(monkeypatch, service=service)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        _start_session(
+            ws,
+            trigger={
+                "source": "proximity_alert",
+                "location_id": "de-berlin-hbf-upgrade",
+                "coordinates": {
+                    "latitude": 52.525,
+                    "longitude": 13.3692,
+                },
+                "event_type": "geofence_entered",
+                "metadata": {
+                    "fence_id": "geofence-de-berlin-hbf-upgrade",
+                    "fence_name": "Berlin Central Station",
+                    "distance_meters": 0,
+                    "radius_meters": 100,
+                    "accuracy_meters": 10,
+                },
+            },
+        )
+        ws.send_json({"type": "trigger.commit", "session_id": "session-1"})
+
+        transcript = ws.receive_json()
+        assistant = ws.receive_json()
+        audio = ws.receive_json()
+        complete = ws.receive_json()
+
+        assert service.session is not None
+        assert service.session.trigger.source is VoiceTriggerSource.proximity_alert
+        assert service.session.trigger.location_id == "de-berlin-hbf-upgrade"
+        assert service.session.trigger.event_type == "geofence_entered"
+        assert service.session.trigger.coordinates == {
+            "latitude": 52.525,
+            "longitude": 13.3692,
+        }
+        assert service.session.trigger.metadata["distance_meters"] == 0
+        assert service.session.trigger.metadata["radius_meters"] == 100
+        assert transcript["type"] == "transcript.final"
+        assert assistant["text"] == "Achtung, Baustelle in der Nähe."
+        assert base64.b64decode(audio["audio_base64"]) == b"trigger-audio"
+        assert complete["total_tokens"] == 9
+
+
+def test_voice_websocket_rejects_invalid_proximity_trigger_coordinates(
+    monkeypatch,
+) -> None:
+    client = _client(monkeypatch)
+
+    with client.websocket_connect("/ws/voice") as ws:
+        ws.send_json(
+            {
+                "type": "session.start",
+                "session_id": "session-1",
+                "language": "de",
+                "trigger": {
+                    "source": "proximity_alert",
+                    "location_id": "de-berlin-hbf-upgrade",
+                    "coordinates": "not-coordinates",
+                    "event_type": "geofence_entered",
+                },
+            }
+        )
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["error"] == "voice_session_error"
 
 
 def test_voice_websocket_rejects_trigger_before_session(monkeypatch) -> None:

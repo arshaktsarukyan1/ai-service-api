@@ -57,6 +57,36 @@ class VoiceConfig(BaseModel):
     session_timeout_seconds: int = Field(default=60, ge=5, le=600)
 
 
+class GeoFencingConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    default_radius_meters: int = Field(default=100, ge=1, le=100_000)
+    min_radius_meters: int = Field(default=10, ge=1, le=100_000)
+    max_radius_meters: int = Field(default=5000, ge=1, le=100_000)
+    exit_hysteresis_meters: int = Field(default=25, ge=0, le=100_000)
+    trigger_cooldown_seconds: int = Field(default=60, ge=0, le=86_400)
+    max_acceptable_accuracy_meters: int = Field(default=100, ge=1, le=100_000)
+
+    @model_validator(mode="after")
+    def radius_values_must_be_consistent(self) -> GeoFencingConfig:
+        if self.min_radius_meters > self.default_radius_meters:
+            raise ValueError(
+                "min_radius_meters must be less than or equal to "
+                "default_radius_meters"
+            )
+        if self.default_radius_meters > self.max_radius_meters:
+            raise ValueError(
+                "default_radius_meters must be less than or equal to "
+                "max_radius_meters"
+            )
+        if self.exit_hysteresis_meters > self.max_radius_meters:
+            raise ValueError(
+                "exit_hysteresis_meters must be less than or equal to "
+                "max_radius_meters"
+            )
+        return self
+
+
 class AIProvidersConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -64,6 +94,7 @@ class AIProvidersConfig(BaseModel):
     providers: dict[str, ProviderConfig]
     database: DatabaseConfig | None = None
     voice: VoiceConfig = Field(default_factory=VoiceConfig)
+    geofencing: GeoFencingConfig = Field(default_factory=GeoFencingConfig)
 
     @model_validator(mode="after")
     def active_provider_must_exist(self) -> AIProvidersConfig:

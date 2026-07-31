@@ -3,6 +3,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.domain.faq import FaqItem
+from app.domain.geo import GeoCoordinate, GeoEvent, GeoFence, GeoFenceState
 from app.domain.location import ConstructionSiteLocation
 from app.domain.tasks import AITask
 
@@ -99,3 +100,28 @@ class DevLocationListItem(BaseModel):
 
 class DevLocationListResponse(BaseModel):
     locations: list[DevLocationListItem]
+
+
+class GeoConfigResponse(BaseModel):
+    default_radius_meters: int = Field(ge=1)
+    min_radius_meters: int = Field(ge=1)
+    max_radius_meters: int = Field(ge=1)
+    exit_hysteresis_meters: int = Field(ge=0)
+    trigger_cooldown_seconds: int = Field(ge=0)
+    max_acceptable_accuracy_meters: int = Field(ge=1)
+
+
+class GeoFenceListResponse(BaseModel):
+    radius_meters: float = Field(gt=0)
+    fences: list[GeoFence]
+
+
+class GeoCheckRequest(BaseModel):
+    user_location: GeoCoordinate
+    radius_meters: float | None = Field(default=None, gt=0)
+    previous_states: dict[str, GeoFenceState] = Field(default_factory=dict)
+
+
+class GeoCheckResponse(BaseModel):
+    radius_meters: float = Field(gt=0)
+    events: list[GeoEvent]
